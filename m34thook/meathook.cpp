@@ -244,10 +244,13 @@ void cmd_mh_testmapentity(idCmdArgs* args) {
 void cmd_mh_forcereload(idCmdArgs* args)
 {
 	// Force a reload of the file. idGameSystemLocal->persistMapFile
-	memset(((char*)descan::g_idgamesystemlocal + 0x60), 0, sizeof(void*));
+	auto PersistMapFileVar = idType::FindClassField("idGameSystemLocal", "persistMapFile");
+	memset(((char*)descan::g_idgamesystemlocal + PersistMapFileVar->offset), 0, sizeof(void*));
 
 	// idGameSystemLocal->idGameSystemLocal::mapChangeRequest_t->requested
-	bool* mapChangeRequest_t_requested = ((bool*)((char*)descan::g_idgamesystemlocal + 0xB8));
+	auto MapChangeRequest = idType::FindClassField("idGameSystemLocal", "mapChangeRequest");
+	auto Requested = idType::FindClassField(MapChangeRequest->type, "requested");
+	bool* mapChangeRequest_t_requested = ((bool*)((char*)descan::g_idgamesystemlocal + MapChangeRequest->offset + Requested->offset));
 	*mapChangeRequest_t_requested = true;
 }
 
@@ -255,6 +258,8 @@ std::vector<std::string> gActiveEncounterNames;
 void cmd_active_encounter(idCmdArgs* args)
 {
 	// Following chain: idGameSystemLocal->idSaveGameSerializer->idSerializeFunctor<idMetrics>->idMetrics->idPlayerMetrics[0]
+	//auto idSaveGameSerializerVar = idType::FindClassField("idGameSystemLocal", "saveGameSerializer");
+	//auto idSaveGameSerializerVar = idType::FindClassField(idSaveGameSerializerVar->type, "idSerializeFunctor<idMetrics>");
 	long long* idSaveGameSerializer = ((long long*)((char*)descan::g_idgamesystemlocal + 0xB0));
 	long long* idSerializerFunctor = (long long*)(*(idSaveGameSerializer));
 	long long* idMetrics = (long long*)(*(idSerializerFunctor + 0x59)); // 0x2C8
@@ -301,14 +306,16 @@ std::string gCurrentCheckpointName;
 void cmd_current_checkpoint(idCmdArgs* args)
 {
 	// Following chain: idGameSystemLocal->idGameSpawnInfo->checkpointName
-	long long* idMapInstanceLocal = ((long long*)((char*)descan::g_idgamesystemlocal + 0x50));
+	auto MapChangeReqVar = idType::FindClassField("idGameSystemLocal", "mapChangeRequest");
+	char* idMapInstanceLocal = ((char*)descan::g_idgamesystemlocal + MapChangeReqVar->offset);
 	
-	char String[MAX_PATH*10];
+	char String[MAX_PATH * 10];
 	// (char*)((*((longlong*)((char*)descan::g_idgamesystemlocal + 0x50))) + 0x1108)
 
 	char* Name = (char*)"NULL";
 	if (idMapInstanceLocal != nullptr) {
-		Name = (char*)((*(idMapInstanceLocal)) + 0x1108); // checkpoint string. 0x1108 byte
+		auto CheckPointNameVar = idType::FindClassField(MapChangeReqVar->type, "checkpointName");
+		Name = (char*)((*(idMapInstanceLocal)) + CheckPointNameVar); // checkpoint string. 0x1108 byte
 	}
 
 	if (Name == nullptr || Name[0] == 0) {
@@ -361,6 +368,5 @@ void meathook_init() {
 	idCmd::register_command("mh_current_checkpoint", cmd_current_checkpoint, "Get the current checkpoint name");
 	idCmd::register_command("mh_ang2mat", cmd_mh_ang2mat, "mh_ang2mat pitch yaw roll : converts the pitch, yawand roll values for idAngles to a decl - formatted matrix, copying the result to your clipboard");
 	idCmd::register_command("mh_optimize", cmd_optimize, "Patches the engine to make stuff run faster. do not use online");
-
-	idCmd::register_command("idlib_dump",idlib_dump, "idlib_dump");
+	idCmd::register_command("idlib_dump", idlib_dump, "idlib_dump");
 }
