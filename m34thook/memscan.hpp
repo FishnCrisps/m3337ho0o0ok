@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "game_exe_interface.hpp"
 #include <cassert>
-
+#include <cstdio>
 /*
 	typical l1 size is 32k
 	but we'll probably lose a chunk of that while executing
@@ -527,7 +527,7 @@ struct block_scangroup_entry_t : public scangroup_listnode_t {
 
 
 	workgroup_result_t* m_result_receiver;
-
+	const char* m_scannode_name;
 	virtual workgroup_result_t execute_on_block(unsigned displ) = 0;
 	//same as execute_on_block, but prefetches for the next block
 	virtual workgroup_result_t execute_on_block_prefetching(unsigned displ) = 0;
@@ -559,8 +559,10 @@ struct block_scangroup_entry_t : public scangroup_listnode_t {
 };
 //extradata is in case we need to add more stuff here
 template<
+	
 	workgroup_result_t* out_result_global,
 	worker_match_behavior_t behavior,
+	const char** bs_name = nullptr,
 	typename Extradata = void>
 	struct blockscan_entry_definition_t {
 
@@ -568,7 +570,7 @@ template<
 	struct implementer_t : public block_scangroup_entry_t {
 		implementer_t() : block_scangroup_entry_t() {
 			m_result_receiver = out_result_global;
-
+			m_scannode_name = (bs_name ? *bs_name : nullptr);
 		}
 
 		virtual workgroup_result_t execute_on_block(unsigned displ) override {
@@ -653,7 +655,11 @@ struct scangroup_t {
 #ifdef ASSERT_ALL_LOCATED
 	template<typename T, typename... TRest>
 	static void assert_all_located() {
-		assert(*(T::g_blockscan_node.m_result_receiver));
+		if(!*(T::g_blockscan_node.m_result_receiver)) {
+			char tmpbuf[1024];
+			sprintf_s(tmpbuf, "Blockscan entry %s failed to locate its required patterns. The DLL may still function normally, but some features may not work.", T::g_blockscan_node.m_scannode_name ? T::g_blockscan_node.m_scannode_name : "<unknown>");
+			MessageBoxA(nullptr, tmpbuf, "MH Scanner Failed", 0 );
+		}
 
 		if constexpr (sizeof...(TRest)) {
 			assert_all_located<TRest...>();

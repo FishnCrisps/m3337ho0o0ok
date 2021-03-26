@@ -1,5 +1,6 @@
 #pragma once
 struct idMapGroups {
+	void* vftbl;
 	//Offset 8,	 size 24
 	idList < idStr , TAG_IDLIST , false > groupList;
 };
@@ -32,7 +33,7 @@ struct idMapEntityLocal : public idMapEntity {
 };
 
 struct idMapFile {
-
+	void* vftbl;
 };
 
 

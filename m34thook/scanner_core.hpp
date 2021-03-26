@@ -12,7 +12,7 @@ namespace descan {
 	extern located_feature_t g_security_check_cookie;
 	extern located_feature_t g_msvc_typeinfo_vtbl;
 	extern located_feature_t g_doom_memorysystem;
-
+	extern located_feature_t g_sqrtf, g_sqrt;
 	extern located_feature_t g_idfilecompressed_getfile;
 	extern located_feature_t g_doom_operator_new;
 	extern located_feature_t g_idfilememory_ctor;

@@ -10,7 +10,7 @@
 #include "clipboard_helpers.hpp"
 #include <vector>
 #include "errorhandling_hooks.hpp"
-
+#include "gameapi.hpp"
 void idlib_dump(idCmdArgs* args) {
 	idType::do_idlib_dump();
 	return;
@@ -24,18 +24,6 @@ void* __fastcall idFileResourceCompressed__GetFile(__int64 a1);
 
 extern void cmd_mh_spawninfo(idCmdArgs* args);
 extern void cmd_mh_ang2mat(idCmdArgs* args);
-
-
-void* find_entity(const char* name) {
-	void* gamloc = *reinterpret_cast<void**>(descan::g_gamelocal);
-
-	void* vftbl = reinterpret_cast<void**>(gamloc)[0];
-
-	void* findentity_func = (((char*)vftbl) + 0x78);
-	findentity_func = *(void**)findentity_func;
-
-	return reinterpret_cast<void* (*)(void*, const char*)>(findentity_func)(gamloc, name);
-}
 
 void cmd_noclip(idCmdArgs* args) {
 	auto player = find_entity("player1");
@@ -333,13 +321,30 @@ void cmd_current_checkpoint(idCmdArgs* args)
 	gCurrentCheckpointName = Name;
 }
 
+void cmd_optimize(idCmdArgs* args) {
+	make_ret(descan::g_security_check_cookie);
+	make_ret(descan::g_alloca_probe);
+
+	/*
+		sqrtss xmm0, xmm0
+		ret
+	*/
+	char sqrtf_override[] = { 0xF3, 0x0F, 0x51, 0xC0, 0xC3 };
+
+	patch_memory_with_undo(descan::g_sqrtf, sizeof(sqrtf_override), sqrtf_override);
+
+	char sqrt_override[] = { 0xF2, 0x0F, 0x51, 0xC0, 0xC3 };
+
+	patch_memory_with_undo(descan::g_sqrt, sizeof(sqrtf_override), sqrt_override);
+}
+
 /*
 	can use mapentity/maplocal typeinfo with getlevelmap to facilitate easier editing
 
 */
 
 void meathook_init() {
-	redirect_to_func((void*)idFileResourceCompressed__GetFile, (uintptr_t)/* doomsym<void>(doomoffs::idFileResourceCompressed__GetFile)*/ descan::g_idfilecompressed_getfile, true);;
+	redirect_to_func((void*)idFileResourceCompressed__GetFile, (uintptr_t)/* doomsym<void>(doomoffs::idFileResourceCompressed__GetFile)*/ descan::g_idfilecompressed_getfile, true);
 	install_error_handling_hooks();
 
 	unsigned patchval_enable_commands = 0;
@@ -355,4 +360,7 @@ void meathook_init() {
 	idCmd::register_command("mh_active_encounter", cmd_active_encounter, "Get the list of active encounter managers");
 	idCmd::register_command("mh_current_checkpoint", cmd_current_checkpoint, "Get the current checkpoint name");
 	idCmd::register_command("mh_ang2mat", cmd_mh_ang2mat, "mh_ang2mat pitch yaw roll : converts the pitch, yawand roll values for idAngles to a decl - formatted matrix, copying the result to your clipboard");
+	idCmd::register_command("mh_optimize", cmd_optimize, "Patches the engine to make stuff run faster. do not use online");
+
+	idCmd::register_command("idlib_dump",idlib_dump, "idlib_dump");
 }
