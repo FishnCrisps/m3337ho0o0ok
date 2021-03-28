@@ -162,8 +162,10 @@
     <ClCompile Include="cmdsystem.cpp" />
     <ClCompile Include="compressedfile_override.cpp" />
     <ClCompile Include="errorhandling_hooks.cpp" />
+    <ClCompile Include="error_checking.cpp" />
     <ClCompile Include="eventdef.cpp" />
     <ClCompile Include="fs_hooks.cpp" />
+    <ClCompile Include="gameapi.cpp" />
     <ClCompile Include="game_exe_interface.cpp" />
     <ClCompile Include="grab_spawninfo_Command.cpp" />
     <ClCompile Include="idLib.cpp" />
@@ -171,6 +173,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="meathook.cpp" />
     <ClCompile Include="mhserver.cpp" />
+    <ClCompile Include="mh_native_api.cpp" />
     <ClCompile Include="scanner_core.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Full</Optimization>
       <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AnySuitable</InlineFunctionExpansion>
@@ -190,8 +193,10 @@
     <ClInclude Include="declare_vtbl_feature_vars.hpp" />
     <ClInclude Include="define_vtbl_feature_vars.hpp" />
     <ClInclude Include="errorhandling_hooks.hpp" />
+    <ClInclude Include="error_checking.hpp" />
     <ClInclude Include="eventdef.hpp" />
     <ClInclude Include="fs_hooks.hpp" />
+    <ClInclude Include="gameapi.hpp" />
     <ClInclude Include="game_exe_interface.hpp" />
     <ClInclude Include="idLib.hpp" />
     <ClInclude Include="idStr.hpp" />
@@ -201,6 +206,7 @@
     <ClInclude Include="meathook_plugin_api.hpp" />
     <ClInclude Include="memorySystem.hpp" />
     <ClInclude Include="memscan.hpp" />
+    <ClInclude Include="mh_native_api.hpp" />
     <ClInclude Include="resource.hpp" />
     <ClInclude Include="scanners\scanners_typeinfo.hpp" />
     <ClInclude Include="scanner_core.hpp" />

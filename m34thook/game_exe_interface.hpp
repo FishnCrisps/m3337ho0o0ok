@@ -72,6 +72,11 @@ void patch_memory(void* location, unsigned size, char* patched_data);
 
 patched_memory_t* redirect_to_func(void* hookfn, uintptr_t reachaddr,bool direct=false);
 
+static void make_ret(void* loc) {
+    char val = 0xC3;
+    patch_memory(loc, 1, &val);
+}
+
 
 void get_blamdll_info(blamdll_t* out);
 

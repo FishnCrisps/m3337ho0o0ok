@@ -13,6 +13,8 @@ located_feature_t descan::g_doom_memorysystem = 0;
 located_feature_t descan::g_idfilecompressed_getfile = 0;
 located_feature_t descan::g_doom_operator_new = 0;
 located_feature_t descan::g_idoodle_decompress = 0;
+located_feature_t descan::g_sqrtf = 0;
+located_feature_t descan::g_sqrt = 0;
 
 located_feature_t descan::g_idfilememory_ctor = 0;
 located_feature_t descan::g_gamelib_initialize_ptr = 0;
@@ -134,7 +136,7 @@ using locate_idstr_ctor_void = memscanner_t<
 	skip<5>,
 	scanbytes<0xc7, 0x41, 0x14, 0x14, 0x0, 0x0, 0x80, 0x48, 0x89, 0x1, 0x48, 0x8d, 0x41, 0x18, 0x48, 0x89, 0x41, 0x8, 0xc7, 0x41, 0x10, 0x0, 0x0, 0x0, 0x0, 0xc6, 0x0, 0x0, 0x48, 0x8b, 0xc1, 0xc3>
 >;
-
+using locate_sqrt = memscanner_t<scanbytes<0xf2,0xf,0x11,0x44,0x24,0x8,0x48,0x83,0xec,0x58,0x48,0xb9,0x0,0x0,0x0,0x0,0x0,0x0,0xf0,0x7f,0xf2,0xf,0x11,0x44,0x24,0x68,0x48,0x8b,0x54,0x24,0x68,0x48,0x8b,0xc2,0x48,0x23,0xc1,0x48,0x3b,0xc1>>;
 
 //0x1418A847B 
 using locate_idgamelocal = memscanner_t<
@@ -216,55 +218,61 @@ scanbytes<0x4c,0x8b,0x44,0x24,0x30,0x4c,0x8d,0x4c,0x24,0x38,0xba,0x7,0x0,0x0,0x0
 using locate_level_reload= memscanner_t<
 	scanbytes<0x48, 0x89, 0x5c, 0x24, 0x20, 0x55, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0x8d, 0xac, 0x24, 0xb0, 0x8e>
 >;
+using locate_sqrtf = memscanner_t<scanbytes<0xf3,0xf,0x11,0x44,0x24,0x8,0x48,0x83,0xec,0x58,0xb9,0x0,0x0,0x80,0x7f,0xf3,0xf,0x11,0x44,0x24,0x68,0x8b,0x54,0x24,0x68,0x8b,0xc2,0x23,0xc1,0x3b,0xc1>>;
 
 using locate_init_func_rva_992170 = memscanner_t <
 	scanbytes < 0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18, 0x57, 0xb8, 0x70, 0x38, 0x00, 0x00, 0xe8>
 >;
-
+#define		BSCANENT(name, ...)\
+	extern const char* ___name_##name = #name;\
+	using  name = blockscan_entry_definition_t<__VA_ARGS__, &___name_##name>
 namespace initial_scanners {
 
 	/*
 		scanners that dont depend on locating any address before running
 	*/
-	using find_alloca_probe_entry = blockscan_entry_definition_t<&descan::g_alloca_probe, scanbehavior_locate_func<locate_alloca_probe>>;
-	using find_security_check_cookie_entry = blockscan_entry_definition_t<&descan::g_security_check_cookie, scanbehavior_locate_func<locate_security_check_cookie>>;
+	//using find_alloca_probe_entry = blockscan_entry_definition_t<&descan::g_alloca_probe, scanbehavior_locate_func<locate_alloca_probe>>);;
+	BSCANENT(find_alloca_probe_entry, &descan::g_alloca_probe, scanbehavior_locate_func<locate_alloca_probe>);
 
-	using find_doom_operator_new_and_idfile_memory_ctor_entry = blockscan_entry_definition_t<&descan::g_idfilememory_ctor, scanbehavior_locate_csrel_after<locate_doom_operator_new>>;
+	BSCANENT(find_security_check_cookie_entry, &descan::g_security_check_cookie, scanbehavior_locate_func<locate_security_check_cookie>);
 
-	using locate_idoodle_decompress_entry = blockscan_entry_definition_t<&descan::g_idoodle_decompress, scanbehavior_locate_func<locate_idoodle_decompress>>;
+	BSCANENT(find_doom_operator_new_and_idfile_memory_ctor_entry, &descan::g_idfilememory_ctor, scanbehavior_locate_csrel_after<locate_doom_operator_new>);
 
-	using locate_idlib_vprintf_entry = blockscan_entry_definition_t<&descan::g_idlib_vprintf, scanbehavior_locate_csrel_after<locate_idlib_vprintf>>;
-	using locate_idlib_hashstr_entry = blockscan_entry_definition_t<&descan::g_idstr_hash, scanbehavior_locate_func<locate_idstr_hash>>;
+	BSCANENT(locate_idoodle_decompress_entry, &descan::g_idoodle_decompress, scanbehavior_locate_func<locate_idoodle_decompress>);
+
+	BSCANENT(locate_idlib_vprintf_entry, &descan::g_idlib_vprintf, scanbehavior_locate_csrel_after<locate_idlib_vprintf>);
+	BSCANENT(locate_idlib_hashstr_entry, &descan::g_idstr_hash, scanbehavior_locate_func<locate_idstr_hash>);
 
 
-	using locate_game_engine_init_ptr_entry = blockscan_entry_definition_t<&descan::g_gamelib_initialize_ptr, scanbehavior_simple<locate_game_engine_init_ptr>>;
+	BSCANENT(locate_game_engine_init_ptr_entry, &descan::g_gamelib_initialize_ptr, scanbehavior_simple<locate_game_engine_init_ptr>);
 
 
-	using p1_memorysystem_locator_entry = blockscan_entry_definition_t<&descan::g_doom_memorysystem, scanbehavior_locate_csrel_after<p1_memorysystem_locator>>;
+	BSCANENT(p1_memorysystem_locator_entry, &descan::g_doom_memorysystem, scanbehavior_locate_csrel_after<p1_memorysystem_locator>);
 
-	using idstr_ctor_void_locator_entry = blockscan_entry_definition_t<&descan::g_idstr__idstr, scanbehavior_locate_func<locate_idstr_ctor_void>>;
+	BSCANENT(idstr_ctor_void_locator_entry, &descan::g_idstr__idstr, scanbehavior_locate_func<locate_idstr_ctor_void>);
 
-	using idgamelocal_locator_entry = blockscan_entry_definition_t<&descan::g_gamelocal, scanbehavior_locate_csrel_preceding<locate_idgamelocal>>;
-	using atomicstringset_locator_entry = blockscan_entry_definition_t<&descan::g_atomic_string_set, scanbehavior_locate_csrel_preceding<locate_atomicstring_set>>;
+	BSCANENT(idgamelocal_locator_entry, &descan::g_gamelocal, scanbehavior_locate_csrel_preceding<locate_idgamelocal>);
+	BSCANENT(atomicstringset_locator_entry, &descan::g_atomic_string_set, scanbehavior_locate_csrel_preceding<locate_atomicstring_set>);
 
-	using getentitystate_needsoffset = blockscan_entry_definition_t<&descan::g_declentitydef_gettextwithinheritance, scanbehavior_simple<locate_getentitystate_in_body>>;
+	BSCANENT(getentitystate_needsoffset, &descan::g_declentitydef_gettextwithinheritance, scanbehavior_simple<locate_getentitystate_in_body>);
 
-	using locate_idstr_dctor_entry = blockscan_entry_definition_t<&descan::g_idstr_dctor, scanbehavior_locate_csrel_after<locate_idstr_dctor>>;
+	BSCANENT(locate_idstr_dctor_entry, &descan::g_idstr_dctor, scanbehavior_locate_csrel_after<locate_idstr_dctor>);
 
-	using locate_idstr_assign_charptr_entry = blockscan_entry_definition_t<&descan::g_idstr_assign_charptr, scanbehavior_locate_csrel_after<locate_idstr_assign_charptr>>;
-	using locate_noclip_code_entry = blockscan_entry_definition_t<&descan::g_noclip_func, scanbehavior_locate_func<locate_noclip_code>>;
-	using locate_typeinfo_tools_entry = blockscan_entry_definition_t<&descan::g_global_typeinfo_tools, scanbehavior_locate_csrel_after<scanner_locate_global_typeinfo_tools>>;
+	BSCANENT(locate_idstr_assign_charptr_entry, &descan::g_idstr_assign_charptr, scanbehavior_locate_csrel_after<locate_idstr_assign_charptr>);
+	BSCANENT(locate_noclip_code_entry, &descan::g_noclip_func, scanbehavior_locate_func<locate_noclip_code>);
+	BSCANENT(locate_typeinfo_tools_entry, &descan::g_global_typeinfo_tools, scanbehavior_locate_csrel_after<scanner_locate_global_typeinfo_tools>);
 
-	using locate_getlevelmap_entry = blockscan_entry_definition_t<&descan::g_maplocal_getlevelmap, scanbehavior_locate_func<locate_body_of_getlevelmap>>;
+	BSCANENT(locate_getlevelmap_entry, &descan::g_maplocal_getlevelmap, scanbehavior_locate_func<locate_body_of_getlevelmap>);
 
-	//using locate_readfile_entry = blockscan_entry_definition_t<&descan::g_idfilesystemlocal, scanbehavior_locate_csrel_preceding<locate_idfilesystemlocal>>;
+	//BSCANENT(locate_readfile_entry, &descan::g_idfilesystemlocal, scanbehavior_locate_csrel_preceding<locate_idfilesystemlocal>);
 
-	using locate_level_reload_entry = blockscan_entry_definition_t<&descan::g_levelreload, scanbehavior_locate_func<locate_level_reload>>;
+	//BSCANENT(locate_level_reload_entry, &descan::g_levelreload, scanbehavior_locate_func<locate_level_reload>);
 
-	using locate_init_func_rva_992170_entry = blockscan_entry_definition_t<&descan::g_init_func_rva_992170, scanbehavior_locate_func<locate_init_func_rva_992170>>;
+	BSCANENT(locate_init_func_rva_992170_entry, &descan::g_init_func_rva_992170, scanbehavior_locate_func<locate_init_func_rva_992170>);
 	
-	using idgamesystemlocal_locator_entry = blockscan_entry_definition_t<&descan::g_idgamesystemlocal_find, scanbehavior_locate_csrel_preceding<locate_idgamesystemlocal>>;
-
+	BSCANENT(idgamesystemlocal_locator_entry, &descan::g_idgamesystemlocal_find, scanbehavior_locate_csrel_preceding<locate_idgamesystemlocal>);
+	BSCANENT(sqrtf_locator_entry, &descan::g_sqrtf, scanbehavior_locate_func<locate_sqrtf>);
+	BSCANENT(sqrt_locator_entry, &descan::g_sqrt, scanbehavior_locate_func<locate_sqrt>);
 	using initial_scangroup_type = scangroup_t<
 		find_alloca_probe_entry,
 		find_security_check_cookie_entry,
@@ -283,10 +291,12 @@ namespace initial_scanners {
 		locate_noclip_code_entry,
 		locate_typeinfo_tools_entry,
 		locate_getlevelmap_entry,
+		sqrtf_locator_entry,
+		sqrt_locator_entry,
 		//locate_readfile_entry,
-		locate_level_reload_entry,
-		locate_init_func_rva_992170_entry,
-		idgamesystemlocal_locator_entry
+	//	locate_level_reload_entry,
+		locate_init_func_rva_992170_entry//,
+		//idgamesystemlocal_locator_entry
 	>;
 	static initial_scangroup_type initial_scangroup{};
 
@@ -300,23 +310,23 @@ using locate_idmapfilelocal_write_body = memscanner_t<
 	match_riprel32_to<&descan::g_idlib_warning>
 >;
 namespace scanners_phase2 {
-	using entry_phase2_locate_findclassinfo = blockscan_entry_definition_t<&descan::g_idtypeinfo_findclassinfo, scanbehavior_locate_func<scanner_locate_findclassinfo>>;
+	BSCANENT(entry_phase2_locate_findclassinfo, &descan::g_idtypeinfo_findclassinfo, scanbehavior_locate_func<scanner_locate_findclassinfo>);
 
-	using entry_phase2_locate_idfilecompressed_getfile = blockscan_entry_definition_t<&descan::g_idfilecompressed_getfile, scanbehavior_locate_func<locate_idfilecompressed_getfile>>;
+	BSCANENT(entry_phase2_locate_idfilecompressed_getfile, &descan::g_idfilecompressed_getfile, scanbehavior_locate_func<locate_idfilecompressed_getfile>);
 
-	using entry_phase2_locate_resourcelist_for_classname = blockscan_entry_definition_t<&descan::g_resourcelist_for_classname, scanbehavior_locate_csrel_after<scanner_locate_resourcelist_for_classname>>;
+	BSCANENT(entry_phase2_locate_resourcelist_for_classname, &descan::g_resourcelist_for_classname, scanbehavior_locate_csrel_after<scanner_locate_resourcelist_for_classname>);
 
-	using entry_phase2_locate_cmd_patch_area = blockscan_entry_definition_t<&descan::g_command_patch_area, scanbehavior_simple<locate_cmd_patch_area>>;
+	BSCANENT(entry_phase2_locate_cmd_patch_area, &descan::g_command_patch_area, scanbehavior_simple<locate_cmd_patch_area>);
 
-	using entry_phase2_locate_deserialize_from_json = blockscan_entry_definition_t<&descan::g_deserialize_type_from_json, scanbehavior_locate_func<scanner_locate_deserialize_typetojson>>;
-	using setentitystate_locator = blockscan_entry_definition_t<&descan::g_declentitydef_setentitystate, scanbehavior_locate_func<locate_setentitystate>>;
-	using locate_idmapfilelocal_write_body_entry = blockscan_entry_definition_t<&descan::g_idmapfile_write, scanbehavior_locate_func<locate_idmapfilelocal_write_body>>;
+	BSCANENT(entry_phase2_locate_deserialize_from_json, &descan::g_deserialize_type_from_json, scanbehavior_locate_func<scanner_locate_deserialize_typetojson>);
+	//BSCANENT(setentitystate_locator, &descan::g_declentitydef_setentitystate, scanbehavior_locate_func<locate_setentitystate>);
+	BSCANENT(locate_idmapfilelocal_write_body_entry, &descan::g_idmapfile_write, scanbehavior_locate_func<locate_idmapfilelocal_write_body>);
 
-	using locate_findenuminfo_entry = blockscan_entry_definition_t<&descan::g_idtypeinfo_findenuminfo, scanbehavior_locate_csrel_after<scanner_locate_findenuminfo>>;
-	using locate_idlib_fatalerror_entry = blockscan_entry_definition_t<&descan::g_idlib_fatalerror, scanbehavior_locate_func<locate_idlib_fatalerror_body>>;
+	BSCANENT(locate_findenuminfo_entry, &descan::g_idtypeinfo_findenuminfo, scanbehavior_locate_csrel_after<scanner_locate_findenuminfo>);
+	BSCANENT(locate_idlib_fatalerror_entry, &descan::g_idlib_fatalerror, scanbehavior_locate_func<locate_idlib_fatalerror_body>);
 
 
-	using locate_idlib_error_entry = blockscan_entry_definition_t<&descan::g_idlib_error, scanbehavior_locate_func<locate_idlib_error_body>>;
+	BSCANENT(locate_idlib_error_entry, &descan::g_idlib_error, scanbehavior_locate_func<locate_idlib_error_body>);
 	using secondary_scangroup_type = scangroup_t<
 		entry_phase2_locate_findclassinfo,
 		entry_phase2_locate_idfilecompressed_getfile,
