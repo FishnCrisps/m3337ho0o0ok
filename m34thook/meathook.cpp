@@ -244,10 +244,12 @@ void cmd_mh_testmapentity(idCmdArgs* args) {
 void cmd_mh_forcereload(idCmdArgs* args)
 {
 	// Force a reload of the file. idGameSystemLocal->persistMapFile
+	//memset(((char*)descan::g_idgamesystemlocal + 0x60), 0, sizeof(void*));
 	auto PersistMapFileVar = idType::FindClassField("idGameSystemLocal", "persistMapFile");
 	memset(((char*)descan::g_idgamesystemlocal + PersistMapFileVar->offset), 0, sizeof(void*));
 
 	// idGameSystemLocal->idGameSystemLocal::mapChangeRequest_t->requested
+	//bool* mapChangeRequest_t_requested = ((bool*)((char*)descan::g_idgamesystemlocal + 0xB8));
 	auto MapChangeRequest = idType::FindClassField("idGameSystemLocal", "mapChangeRequest");
 	auto Requested = idType::FindClassField(MapChangeRequest->type, "requested");
 	bool* mapChangeRequest_t_requested = ((bool*)((char*)descan::g_idgamesystemlocal + MapChangeRequest->offset + Requested->offset));
@@ -306,16 +308,18 @@ std::string gCurrentCheckpointName;
 void cmd_current_checkpoint(idCmdArgs* args)
 {
 	// Following chain: idGameSystemLocal->idGameSpawnInfo->checkpointName
-	auto MapChangeReqVar = idType::FindClassField("idGameSystemLocal", "mapChangeRequest");
-	char* idMapInstanceLocal = ((char*)descan::g_idgamesystemlocal + MapChangeReqVar->offset);
-	
+	auto MapInstanceVar = idType::FindClassField("idGameSystemLocal", "mapInstance");
+	char* idMapInstanceLocal = ((char*)descan::g_idgamesystemlocal + MapInstanceVar->offset);
+
 	char String[MAX_PATH * 10];
 	// (char*)((*((longlong*)((char*)descan::g_idgamesystemlocal + 0x50))) + 0x1108)
 
 	char* Name = (char*)"NULL";
 	if (idMapInstanceLocal != nullptr) {
-		auto CheckPointNameVar = idType::FindClassField(MapChangeReqVar->type, "checkpointName");
-		Name = (char*)((*(idMapInstanceLocal)) + CheckPointNameVar); // checkpoint string. 0x1108 byte
+		//auto GameSpawnNameVar = idType::FindClassField(MapInstanceVar->type, "gameSpawnInfo");
+		//auto CheckPointNameVar = idType::FindClassField(GameSpawnNameVar->type, "checkpointName");
+		//Name = (char*)(*((unsigned long long*)(idMapInstanceLocal + CheckPointNameVar->offset + GameSpawnNameVar->offset))); // checkpoint string. 0x1108 byte
+		Name = ((char*)(*((long long*)(idMapInstanceLocal)) + 0x1108));
 	}
 
 	if (Name == nullptr || Name[0] == 0) {

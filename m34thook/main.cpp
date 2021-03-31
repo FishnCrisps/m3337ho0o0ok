@@ -17,7 +17,7 @@ static void init_xinput() {
 	ExpandEnvironmentStringsA("%WINDIR%\\System32\\XINPUT1_3.dll", tmpbuf, sizeof(tmpbuf));
 	g_real_xinput = LoadLibraryA(tmpbuf);
 	if (!g_real_xinput) {
-		MessageBoxA(nullptr, "FUCKEDY WUCKEDY", "ruh roh spaghetts", 0);
+		MessageBoxA(nullptr, "Could not load the original XINPUT library", "Error", 0);
 		exit(0);
 	}
 }

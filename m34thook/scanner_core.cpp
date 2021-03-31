@@ -36,7 +36,6 @@ located_feature_t descan::g_idfilesystemlocal = 0;
 
 located_feature_t descan::g_idlib_fatalerror = 0, descan::g_idlib_error = 0;
 located_feature_t descan::g_levelreload = 0;
-located_feature_t descan::g_init_func_rva_992170 = 0;
 
 #include "define_vtbl_feature_vars.hpp"
 
@@ -220,9 +219,6 @@ using locate_level_reload= memscanner_t<
 >;
 using locate_sqrtf = memscanner_t<scanbytes<0xf3,0xf,0x11,0x44,0x24,0x8,0x48,0x83,0xec,0x58,0xb9,0x0,0x0,0x80,0x7f,0xf3,0xf,0x11,0x44,0x24,0x68,0x8b,0x54,0x24,0x68,0x8b,0xc2,0x23,0xc1,0x3b,0xc1>>;
 
-using locate_init_func_rva_992170 = memscanner_t <
-	scanbytes < 0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18, 0x57, 0xb8, 0x70, 0x38, 0x00, 0x00, 0xe8>
->;
 #define		BSCANENT(name, ...)\
 	extern const char* ___name_##name = #name;\
 	using  name = blockscan_entry_definition_t<__VA_ARGS__, &___name_##name>
@@ -267,8 +263,6 @@ namespace initial_scanners {
 	//BSCANENT(locate_readfile_entry, &descan::g_idfilesystemlocal, scanbehavior_locate_csrel_preceding<locate_idfilesystemlocal>);
 
 	//BSCANENT(locate_level_reload_entry, &descan::g_levelreload, scanbehavior_locate_func<locate_level_reload>);
-
-	BSCANENT(locate_init_func_rva_992170_entry, &descan::g_init_func_rva_992170, scanbehavior_locate_func<locate_init_func_rva_992170>);
 	
 	BSCANENT(idgamesystemlocal_locator_entry, &descan::g_idgamesystemlocal_find, scanbehavior_locate_csrel_preceding<locate_idgamesystemlocal>);
 	BSCANENT(sqrtf_locator_entry, &descan::g_sqrtf, scanbehavior_locate_func<locate_sqrtf>);
@@ -294,9 +288,8 @@ namespace initial_scanners {
 		sqrtf_locator_entry,
 		sqrt_locator_entry,
 		//locate_readfile_entry,
-	//	locate_level_reload_entry,
-		locate_init_func_rva_992170_entry//,
-		//idgamesystemlocal_locator_entry
+		//locate_level_reload_entry,
+		idgamesystemlocal_locator_entry
 	>;
 	static initial_scangroup_type initial_scangroup{};
 
