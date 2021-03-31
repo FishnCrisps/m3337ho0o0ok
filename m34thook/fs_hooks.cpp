@@ -382,7 +382,7 @@ FILE* get_override_for_resource(const char* name, size_t* size_out) {
 	if (strstr(name, ".entities") != 0) {
 		gLastLoadedEntities = name;
 	}
-		if(!g_readfile_log) {
+	if(!g_readfile_log) {
 		fopen_s(&g_readfile_log, "readfile_eternal.txt", "w");
 		atexit(dispose_log);
 	}

@@ -46,7 +46,6 @@ namespace descan {
 
 	extern located_feature_t g_idfilesystemlocal;
 	extern located_feature_t g_levelreload;
-	extern located_feature_t g_init_func_rva_992170;
 #include "declare_vtbl_feature_vars.hpp"
 
 
