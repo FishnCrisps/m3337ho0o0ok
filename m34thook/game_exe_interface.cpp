@@ -69,67 +69,29 @@ patched_memory_t* redirect_to_func(void* hookfn, uintptr_t reachaddr, bool direc
 
 	auto oldfunc = reachaddr;
 
-	// DWORD unprotect;
-   //  VirtualProtect((void*)oldfunc, 4096, PAGE_EXECUTE_READWRITE, &unprotect);
-
-	char dabytes[] = {
-	   0x48, 0xb8, 0,0,0,0, 0,0,0,0,0x50, 0xc3
+	static char dabytes[] = {
+	   0x48, (char)0xb8, 0,0,0,0, 0,0,0,0,0x50, (char)0xc3
 	};
 
 	*reinterpret_cast<void**>(&dabytes[2]) = hookfn;
 	return patch_memory_with_undo((void*)oldfunc, sizeof(dabytes), dabytes);
 
-	// memcpy((void*)oldfunc, dabytes, sizeof(dabytes));
 }
 
 
 void redirect_to_func_save_rax(void* hookfn, uintptr_t reachaddr) {
-	char dabytes[] = { 0x50, 0x48, 0xB8, 0x32, 0x89, 0x04, 0x39, 0xFF, 0x7F, 0x00, 0x00, 0xFF, 0xE0 };
-	// DWORD unprotect;
+	static char dabytes[] = { 0x50, 0x48, (char)0xB8, 0x32, (char)0x89, 0x04, 0x39, (char)0xFF, (char)0x7F, 0x00, 0x00, (char)0xFF, (char)0xE0 };
 	*reinterpret_cast<void**>(&dabytes[3]) = hookfn;
 
 	patch_memory_with_undo((void*)reachaddr, sizeof(dabytes), dabytes);
 
-	/* VirtualProtect((void*)reachaddr, 4096, PAGE_EXECUTE_READWRITE, &unprotect);
-
-	   memcpy((void*)reachaddr, dabytes, sizeof(dabytes));*/
 
 }
 
-
-static unsigned* locate_tlsindex_ptr() {
-	char* ntdllc = reinterpret_cast<char*>(get_reach_base());
-
-	auto base = reinterpret_cast<IMAGE_DOS_HEADER*>(get_reach_base());
-	auto winheader = reinterpret_cast<IMAGE_NT_HEADERS*>(ntdllc + base->e_lfanew);
-
-
-	auto exports_ptr = reinterpret_cast<unsigned**>(ntdllc + winheader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress)[2];
-
-	return exports_ptr;
-
-	//auto exps  = reinterpret_cast<_IMAGE_EXPORT_DIRECTORY*>(exports_ptr);
-}
-
-static void* locate_tls_page() {
-	char* ntdllc = reinterpret_cast<char*>(get_reach_base());
-
-	auto base = reinterpret_cast<IMAGE_DOS_HEADER*>(get_reach_base());
-	auto winheader = reinterpret_cast<IMAGE_NT_HEADERS*>(ntdllc + base->e_lfanew);
-
-
-	auto exports_ptr = reinterpret_cast<void**>(ntdllc + winheader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress)[0];
-
-	return exports_ptr;
-
-	//auto exps  = reinterpret_cast<_IMAGE_EXPORT_DIRECTORY*>(exports_ptr);
-}
 
 
 
 void swap_out_ptrs(void* start_addr, void** repls, unsigned n, bool dont_want_replaced) {
-	DWORD old;
-	//VirtualProtect(start_addr, n*8, PAGE_READWRITE, &old);
 
 	void** temp = new void* [n];
 
@@ -145,7 +107,6 @@ void swap_out_ptrs(void* start_addr, void** repls, unsigned n, bool dont_want_re
 	}
 	patch_memory_with_undo(start_addr, n * 8, (char*)temp);
 	delete[] temp;
-	//VirtualProtect(start_addr, n*8, old, &old);
 
 }
 
@@ -228,40 +189,5 @@ void** locate_func_in_imports(void* wantfunc) {
 			return (void**)p;
 		p+=8;
 	}
-	return nullptr;
-}
-#include <WINNT.H>
-void** locate_import_ptr(const char* impname) {
-	auto ntdllc = g_blamdll.image_base;
-#if 0
-	auto exports_ptr = g_blamdll.image_base + g_blamdll.image_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-	auto exps  = reinterpret_cast<IMAGE_IMPORT_MODULE_DIRECTORY *>(exports_ptr);
-
-	auto names = reinterpret_cast<unsigned*>(exps->AddressOfNames + ntdllc);
-	auto funcs = reinterpret_cast<unsigned*>(exps->AddressOfFunctions + ntdllc);
-
-	
-	unsigned nfuncs = exps->NumberOfFunctions;
-	unsigned nnames = exps->NumberOfNames;
-
-	unsigned short* ords = reinterpret_cast<unsigned short*>(exps->AddressOfNameOrdinals + ntdllc);
-
-
-	for(unsigned i = 0; i < nnames; ++i) {
-		char* nam = names[i] + ntdllc;
-		if(!strcmp(nam, impname)) {
-
-		//auto xlat = find_syscall(nam);
-	//	if(xlat == nullptr)
-		//	continue;
-			unsigned ord = ords[i];
-
-			auto funcptr = funcs[ord] + ntdllc;
-			return (void**)funcptr;
-		}
-		//int swi = extract_syscall((unsigned int*)funcptr);
-	//	g_translated_syscalls[xlat->swicode] = get_syscall_ptr_of_code(swi);
-	}
-#endif
 	return nullptr;
 }

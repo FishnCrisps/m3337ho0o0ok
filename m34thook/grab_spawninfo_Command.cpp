@@ -135,7 +135,7 @@ void cmd_mh_ang2mat(idCmdArgs* args) {
 	if (args->argc > 3) {
 		inv3 = atof(args->argv[3]);
 	}
-	idAngles angles{ inv1, inv2, inv3 };
+	idAngles angles{ (float)inv1, (float)inv2, (float)inv3 };
 	idMat3 mat = angles.ToMat3();
 	//copypaste
 	const char* fmtstr = "{\n\tmat = {\n\t\tmat[0] = {\n\t\t\tx = %f;\n\t\t\ty = %f;\n\t\t\tz = %f;\n\t\t}\n\t\tmat[1] = {\n\t\t\tx = %f;\n\t\t\ty = %f;\n\t\t\tz=%f;\n\t\t}\n\t\tmat[2] = {\n\t\t\tx = %f;\n\t\t\ty = %f;\n\t\t\tz = %f;\n\t\t}\n\t}\n}\n";

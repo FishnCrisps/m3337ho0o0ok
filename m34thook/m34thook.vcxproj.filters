@@ -60,6 +60,15 @@
     <ClCompile Include="errorhandling_hooks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="error_checking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gameapi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mh_native_api.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game_exe_interface.hpp">
@@ -126,6 +135,15 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="errorhandling_hooks.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="error_checking.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gameapi.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mh_native_api.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
