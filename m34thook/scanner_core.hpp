@@ -46,6 +46,15 @@ namespace descan {
 
 	extern located_feature_t g_idfilesystemlocal;
 	extern located_feature_t g_levelreload;
+	extern located_feature_t g_init_func_rva_992170;
+	extern located_feature_t g_find_next_entity_with_class;
+	//actually expects resourceList_t*, not idResourceList
+	extern located_feature_t g_resourcelist_index;
+
+	//for resourceList_t, not idResourceList. use idResourceList typeinfo to get to resourceList_t
+	extern unsigned g_offset_resourcelist_length;
+
+	extern unsigned g_vftbl_offset_getlevelmap;
 #include "declare_vtbl_feature_vars.hpp"
 
 

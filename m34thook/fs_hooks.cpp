@@ -8,7 +8,6 @@
 #include "memorySystem.hpp"
 #include <map>
 #include <string>
-#include <vector>
 #include "idStr.hpp"
 //idFileSystemLocal::ReadFile(char const*,void **,idFileProps *,fsPathSearch_t)	.text	0000007101D87CB0	00000178	00000040	FFFFFFFFFFFFFFF8	R	.	.	.	B	T	.
 struct idFile;
@@ -81,8 +80,8 @@ struct cs_idfile_override_t : public idFile {
 	bool m_writable;
 	void destroy() {
 		if (m_cfile) {
-			
-			STDIOFN_LOCK( fclose,m_cfile);
+
+			STDIOFN_LOCK(fclose, m_cfile);
 			m_cfile = nullptr;
 			m_fullpath = nullptr;
 			m_fname = nullptr;
@@ -109,7 +108,7 @@ struct cs_idfile_override_t : public idFile {
 	}
 
 	static size_t do_read(idFile* thiz, void* buffer, unsigned int len) {
-		
+
 		return STDIOFN_LOCK(fread, buffer, 1, len, reinterpret_cast<cs_idfile_override_t*>(thiz)->m_cfile);
 	}
 	static size_t do_write(idFile* thiz, const void* buffer, unsigned int len) {
@@ -149,11 +148,11 @@ struct cs_idfile_override_t : public idFile {
 
 	static size_t do_length(const idFile* thiz) {
 		auto t = reinterpret_cast<const cs_idfile_override_t*>(thiz);
-		
+
 		auto oldpos = EXTIOFN_LOCK(_ftelli64, t->m_cfile);
-		EXTIOFN_LOCK(_fseeki64,t->m_cfile, 0, SEEK_END);
+		EXTIOFN_LOCK(_fseeki64, t->m_cfile, 0, SEEK_END);
 		auto sz = EXTIOFN_LOCK(_ftelli64, t->m_cfile);
-		EXTIOFN_LOCK(_fseeki64,t->m_cfile, oldpos, SEEK_SET);
+		EXTIOFN_LOCK(_fseeki64, t->m_cfile, oldpos, SEEK_SET);
 		return sz;
 	}
 
@@ -180,7 +179,7 @@ struct cs_idfile_override_t : public idFile {
 			outseekd = SEEK_SET;
 			break;
 		}
-		return EXTIOFN_LOCK(_fseeki64,t->m_cfile, offs, outseekd);
+		return EXTIOFN_LOCK(_fseeki64, t->m_cfile, offs, outseekd);
 	}
 	static size_t do_Printf(idFile* thiz, const char* fmt, ...) {
 		va_list ap;
@@ -210,7 +209,7 @@ struct cs_idfile_override_t : public idFile {
 	}
 
 	static void do_flush(idFile* thiz) {
-		STDIOFN_LOCK( fflush, reinterpret_cast<cs_idfile_override_t*>(thiz)->m_cfile);
+		STDIOFN_LOCK(fflush, reinterpret_cast<cs_idfile_override_t*>(thiz)->m_cfile);
 	}
 	static size_t do_GetSectorSize(const idFile*) {
 		return 1;
@@ -237,7 +236,7 @@ struct cs_idfile_override_t : public idFile {
 
 			if (buffpos) {
 				scratchbuffer[buffpos] = 0;
-				
+
 				std::string tmpstr{};
 				tmpstr = outstr->data;
 				tmpstr += scratchbuffer;
@@ -251,7 +250,7 @@ struct cs_idfile_override_t : public idFile {
 		};
 
 
-		auto add_char_to_buffer = [&scratchbuffer, &buffpos, outstr, &flush_buffer](unsigned c) {
+		auto add_char_to_buffer = [&scratchbuffer, &buffpos, &flush_buffer](unsigned c) {
 			if (!c) {
 				flush_buffer();
 				return false;
@@ -272,7 +271,7 @@ struct cs_idfile_override_t : public idFile {
 				break;
 			}
 			nread++;
-			unsigned c =STDIOFN_LOCK( fgetc,t->m_cfile);
+			unsigned c = STDIOFN_LOCK(fgetc, t->m_cfile);
 
 			if (!add_char_to_buffer(c))
 				break;
@@ -289,7 +288,7 @@ struct cs_idfile_override_t : public idFile {
 		//return doomcall<size_t>(doomoffs::_ZN6idFile12ReadDebugTagEPKcS1_i, thiz, a1, a2, a3);
 		return 0;
 	}
-	static  uint64_t do_WriteDebugTag(idFile* thiz, const char*a1 , const char*a2) {
+	static  uint64_t do_WriteDebugTag(idFile* thiz, const char* a1, const char* a2) {
 		//return doomcall<size_t>(doomoffs::_ZN6idFile13WriteDebugTagEPKcS1_, thiz, a1, a2);
 		return 0;
 	}
@@ -348,7 +347,7 @@ struct cs_idfile_override_t : public idFile {
 		cs_idfile_override_t* overr = (cs_idfile_override_t*)idMemorySystem_malloc(sizeof(cs_idfile_override_t), 52, 0);
 		overr->vftbl = &g_override_file_vftbl;
 		overr->m_cfile = fp;
-		overr->m_readable=readable;
+		overr->m_readable = readable;
 		overr->m_writable = writeable;
 		overr->m_fullpath = fpath;
 		overr->m_fname = name;
@@ -371,24 +370,27 @@ FILE* get_override_for_resource(const char* name, size_t* size_out) {
 	FILE* resfile = nullptr;
 
 	char pathbuf[4096];
-	if ((gOverrideFileName != nullptr) && (strstr(name, ".entities") != 0) && (gOverrideName == std::string(name))) {
+	memset(pathbuf, 0, sizeof(pathbuf));
+
+	if ((gOverrideFileName != nullptr) && (strstr(name, ".entities") != 0) && (gOverrideName.size() && !strcmp(gOverrideName.c_str(), name))) {
 		strcpy_s(pathbuf, gOverrideFileName);
 		gOverrideFileName = nullptr;
 
-	} else {
+	}
+	else {
 		sprintf_s(pathbuf, ".\\overrides\\%s", name);
 	}
 
 	if (strstr(name, ".entities") != 0) {
 		gLastLoadedEntities = name;
 	}
-	if(!g_readfile_log) {
-		fopen_s(&g_readfile_log, "readfile_eternal.txt", "w");
+#if 0
+	if (!g_readfile_log) {
+		fopen_s(&g_readfile_log, "C:\\Users\\Chris\\readfile_eternal.txt", "w");
 		atexit(dispose_log);
 	}
 	fprintf(g_readfile_log, "%s\n", name);
-
-	unsigned i = 0;
+#endif
 	for (unsigned i = 0; pathbuf[i]; ++i)
 		if (pathbuf[i] == '/')
 			pathbuf[i] = '\\';
@@ -411,18 +413,18 @@ static size_t readfile_repl(void* fs, const char* path, void** out_data, void* f
 static void* g_old_readfile = (void*)readfile_repl;
 
 static size_t readfile_repl(void* fs, const char* path, void** out_data, void* fileprops, unsigned psrch) {
-	
+
 
 	size_t res = call_as<size_t>(g_old_readfile, fs, path, out_data, fileprops, psrch);
 
 	size_t sz = 0;
 	FILE* overrid = get_override_for_resource(path, &sz);
 
-//	fprintf(g_readfile_log, "%s\n", path);
-	if(!overrid)
+	//	fprintf(g_readfile_log, "%s\n", path);
+	if (!overrid)
 		return res;
 
-//	idMemorySystem_free(*out_data);
+	//	idMemorySystem_free(*out_data);
 
 
 	void* newdata = idMemorySystem_malloc(sz, 52, 0);
@@ -438,14 +440,14 @@ static size_t readfile_repl(void* fs, const char* path, void** out_data, void* f
 
 
 static idFile* openfileread_replacement(void* a1, const char* a2, bool a3, int a4, int a5) {
-/*	if(a5 !=FSPATH_SEARCH_BASE && a5 != FSPATH_SEARCH_DEFAULT ) {
-		return g_backup_filesystem_vftbl._ZN17idFileSystemLocal12OpenFileReadEPKcbb14fsPathSearch_t(a1, a2, a3, a4, a5);
-	}
-	else */
+	/*	if(a5 !=FSPATH_SEARCH_BASE && a5 != FSPATH_SEARCH_DEFAULT ) {
+			return g_backup_filesystem_vftbl._ZN17idFileSystemLocal12OpenFileReadEPKcbb14fsPathSearch_t(a1, a2, a3, a4, a5);
+		}
+		else */
 	{
 		size_t sz = 0;
 		FILE* overr = get_override_for_resource(a2, &sz);
-		if(overr) {
+		if (overr) {
 			return cs_idfile_override_t::create(overr, true, false, a2, a2);
 		}
 		else {
@@ -456,14 +458,14 @@ static idFile* openfileread_replacement(void* a1, const char* a2, bool a3, int a
 static void* g_old_openfileread2 = nullptr;
 
 static idFile* openfileread2_replacement(void* a1, const char* a2, unsigned a3) {
-/*	if(a5 !=FSPATH_SEARCH_BASE && a5 != FSPATH_SEARCH_DEFAULT ) {
-		return g_backup_filesystem_vftbl._ZN17idFileSystemLocal12OpenFileReadEPKcbb14fsPathSearch_t(a1, a2, a3, a4, a5);
-	}
-	else */
+	/*	if(a5 !=FSPATH_SEARCH_BASE && a5 != FSPATH_SEARCH_DEFAULT ) {
+			return g_backup_filesystem_vftbl._ZN17idFileSystemLocal12OpenFileReadEPKcbb14fsPathSearch_t(a1, a2, a3, a4, a5);
+		}
+		else */
 	{
 		size_t sz = 0;
 		FILE* overr = get_override_for_resource(a2, &sz);
-		if(overr) {
+		if (overr) {
 			return cs_idfile_override_t::create(overr, true, false, a2, a2);
 		}
 		else {

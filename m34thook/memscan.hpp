@@ -5,6 +5,7 @@
 #include "game_exe_interface.hpp"
 #include <cassert>
 #include <cstdio>
+#include <intrin.h>
 /*
 	typical l1 size is 32k
 	but we'll probably lose a chunk of that while executing
@@ -24,6 +25,7 @@ enum class memsection_e {
 };
 
 template<memsection_e section, typename TTest>
+__forceinline
 static inline bool test_section_address(blamdll_t* dll, TTest t) {
 	if constexpr (section == memsection_e::any) {
 		return dll->is_in_image(t);
@@ -39,13 +41,70 @@ static inline bool test_section_address(blamdll_t* dll, TTest t) {
 	}
 }
 
+#if defined(__clang__)
+__attribute__((flatten))
+__attribute__((always_inline))
+#endif
+static inline bool scancmp_bytes(const unsigned char* state, const unsigned char* values, size_t nvalues) {
+#if 1
+	unsigned i = 0;
+	while((i+16) < nvalues) {
+		__m128i addri = _mm_loadu_si128((const __m128i*)(state+i));
+		__m128i vali = _mm_loadu_si128((const __m128i*)(values+i));
+
+		if(_mm_movemask_epi8(_mm_cmpeq_epi8(addri, vali)) != 0xFFFF)
+			return false;
+		i += 16;
+	}
+
+	while((i+8) < nvalues) {
+		uint64_t addri = *reinterpret_cast<const uint64_t*>(state+i);
+		uint64_t vali = *reinterpret_cast<const uint64_t*>(values+i);
+		if(addri!=vali)
+			return false;
+
+		i+=8;
+	}
+
+	while((i+4) < nvalues) {
+		uint32_t addri = *reinterpret_cast<const uint32_t*>(state+i);
+		uint32_t vali = *reinterpret_cast<const uint32_t*>(values+i);
+		if(addri!=vali)
+			return false;
+
+		i+=4;
+	}
+
+	while((i+2) < nvalues) {
+		uint32_t addri = *reinterpret_cast<const uint16_t*>(state+i);
+		uint32_t vali = *reinterpret_cast<const uint16_t*>(values+i);
+		if(addri!=vali)
+			return false;
+
+		i+=2;
+	}
+	while(i < nvalues) {
+		uint32_t addri = *reinterpret_cast<const uint8_t*>(state+i);
+		uint32_t vali = *reinterpret_cast<const uint8_t*>(values+i);
+		if(addri!=vali)
+			return false;
+
+		i+=1;
+	}
+	return true;
+#else
+	return !memcmp(state, values, nvalues);
+#endif
+}
+
+
 template<unsigned char... bs>
 struct scanbytes {
 	static constexpr unsigned char values[] = { bs... };
 	static constexpr unsigned required_valid_size = sizeof...(bs);
 	static constexpr unsigned matched_size = sizeof...(bs);
 
-
+	__forceinline
 	static bool match(scanstate_t& state) {
 
 #if 1
@@ -84,7 +143,10 @@ struct scanbytes {
 			return res;
 		}
 		else {
-			if (!memcmp((const void*)state.addr, (const void*)values, sizeof...(bs))) {
+
+
+			if (scancmp_bytes(state.addr, values, sizeof...(bs))) {
+			//if(scancmp_bytes<0, bs...>(state)) {
 				state.addr += sizeof...(bs);
 				return true;
 			}
@@ -105,7 +167,7 @@ struct match_riprel32_to {
 
 	static constexpr unsigned required_valid_size = 4;
 
-
+	__forceinline
 	static bool match(scanstate_t& state) {
 		if (!state.dll->is_in_image(state.addr))
 			return false;
@@ -125,17 +187,18 @@ struct riprel32_data_equals {
 	static constexpr unsigned char values[] = { data... };
 
 	static constexpr unsigned required_valid_size = 4;
+	__forceinline
 	static bool match(scanstate_t& state) {
 		unsigned char* base = state.addr + 4;
 
 		signed displ = *(signed*)state.addr;
 		base += displ;
 
-		if ((char*)base < state.dll->image_base || (char*)base >(state.dll->image_base + state.dll->image_size))
+		if ((char*)base < state.dll->image_base || (((char*)base ) + sizeof...(data)) > (state.dll->image_base + state.dll->image_size))
 			return false;
 		state.addr += 4;
 
-		return !memcmp((const void*)base, (const void*)(&values[0]), sizeof...(data));
+		return scancmp_bytes(base, values, sizeof...(data));//!memcmp((const void*)base, (const void*)(&values[0]), sizeof...(data));
 	}
 
 };
@@ -167,6 +230,7 @@ struct match_calltarget_riprel32_recursive {
 template<unsigned N>
 struct skip {
 	static constexpr unsigned required_valid_size = N;
+	__forceinline
 	static bool match(scanstate_t& state) {
 		state.addr += N;
 		return true;
@@ -177,6 +241,7 @@ template<void** rva_out>
 struct skip_and_capture_rva {
 	//static inline T value{};
 	static constexpr unsigned required_valid_size = 4;
+	__forceinline
 	static bool match(scanstate_t& state) {
 
 
@@ -189,9 +254,34 @@ struct skip_and_capture_rva {
 	}
 };
 
+template<unsigned * number_out>
+struct skip_and_capture_4byte_value {
+	static constexpr unsigned required_valid_size = 4;
+	__forceinline
+	static bool match(scanstate_t& state) {
+
+		*number_out = *reinterpret_cast<unsigned*>(state.addr);
+
+		state.addr += 4;
+		return true;
+	}	
+};
+template<unsigned * number_out>
+struct skip_and_capture_1byte_value {
+	static constexpr unsigned required_valid_size = 4;
+	__forceinline
+	static bool match(scanstate_t& state) {
+
+		*number_out = *state.addr;
+
+		state.addr += 1;
+		return true;
+	}	
+};
 template<unsigned n>
 struct align_next {
 	static constexpr unsigned required_valid_size = n;
+	__forceinline
 	static bool match(scanstate_t& state) {
 		state.addr += (n - 1);
 		state.addr = (unsigned char*)(((uintptr_t)state.addr) & ~(uintptr_t)(n - 1));
@@ -212,6 +302,7 @@ struct memscanner_factory_t {
 	struct memscanner_t {
 
 		template<typename TCurr, typename... TRest>
+		__forceinline
 		static bool test_addr(scanstate_t& state) {
 
 			if (!TCurr::match(state)) {
@@ -227,7 +318,7 @@ struct memscanner_factory_t {
 		template<typename TCurr, typename... TRest>
 		static constexpr unsigned compute_overall_required_mapped_bytes() {
 			unsigned v = TCurr::required_valid_size;
-			if constexpr (sizeof...(TRest)) {
+			if constexpr (sizeof...(TRest) != 0) {
 				return v + compute_overall_required_mapped_bytes<TRest...>();
 			}
 			return v;
@@ -235,15 +326,41 @@ struct memscanner_factory_t {
 
 		static constexpr unsigned required_mapped_bytes = compute_overall_required_mapped_bytes<Ts...>();
 
-
+		__forceinline
 		static bool match(scanstate_t& state) {
-			if constexpr (scanner_flags & _test_mapped_displ_in_image) {
+			if constexpr ((scanner_flags & _test_mapped_displ_in_image) != 0) {
 				if (!state.dll->is_in_image(state.addr + required_mapped_bytes))
 					return false;
 			}
 			return test_addr<Ts...>(state);
 		}
 	};
+};
+/*
+	match another memscanner_t within up to n bytes after the current address
+	added for locate_game_engine which had bytes removed before it
+*/
+template<unsigned within_n_bytes, typename subscanner>
+struct match_within_variable_distance {
+	static constexpr unsigned required_valid_size = within_n_bytes + subscanner::required_mapped_bytes;
+	__forceinline
+	static bool match(scanstate_t& state) {
+
+
+		for(unsigned i = 0; i < within_n_bytes; ++i) {
+			
+			scanstate_t substate = state;
+			if(subscanner::match(substate)) {
+				state = substate;
+				return true;
+			}
+			state.addr++;
+		}
+
+		return false;
+
+
+	}
 };
 
 using workgroup_result_t = void*;
@@ -522,6 +639,8 @@ struct scangroup_listnode_t {
 	scangroup_listnode_t() : m_next(nullptr), m_prev(nullptr) {}
 };
 
+
+
 struct block_scangroup_entry_t : public scangroup_listnode_t {
 
 
@@ -543,7 +662,8 @@ struct block_scangroup_entry_t : public scangroup_listnode_t {
 			/*
 				we're done, remove us from the execution list
 			*/
-			*m_result_receiver = res;
+			if(m_result_receiver)
+				*m_result_receiver = res;
 			if (m_prev) {
 				m_prev->m_next = m_next;
 			}
@@ -570,7 +690,7 @@ template<
 	struct implementer_t : public block_scangroup_entry_t {
 		implementer_t() : block_scangroup_entry_t() {
 			m_result_receiver = out_result_global;
-			m_scannode_name = (bs_name ? *bs_name : nullptr);
+			m_scannode_name = (bs_name!= nullptr ? *bs_name : nullptr);
 		}
 
 		virtual workgroup_result_t execute_on_block(unsigned displ) override {
@@ -642,7 +762,7 @@ struct scangroup_t {
 
 		TCurr::g_blockscan_node.m_prev = (block_scangroup_entry_t*)prevnode;
 
-		if constexpr (sizeof...(TNext)) {
+		if constexpr (sizeof...(TNext) != 0) {
 			link_group<TNext...>(&TCurr::g_blockscan_node);
 		}
 
@@ -661,7 +781,7 @@ struct scangroup_t {
 			MessageBoxA(nullptr, tmpbuf, "MH Scanner Failed", 0 );
 		}
 
-		if constexpr (sizeof...(TRest)) {
+		if constexpr (sizeof...(TRest) != 0) {
 			assert_all_located<TRest...>();
 		}
 	}
@@ -697,6 +817,9 @@ struct scangroup_t {
 	}
 
 };
+
+
+
 
 /*
 	execute a memscanner on a small window of the program
